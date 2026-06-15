@@ -1,0 +1,36 @@
+name: Keep Streak
+
+# Runs on GitHub's servers (works with your laptop OFF).
+# Makes one commit authored by you so it counts on your contribution graph.
+# Runs 3x/day for redundancy against GitHub Actions scheduling delays.
+# Scheduled runs AUTO-STOP after 2026-06-21 (your away window: Jun 17-21).
+on:
+  schedule:
+    - cron: '17 1 * * *'    # 01:17 UTC  (06:47 IST)
+    - cron: '17 9 * * *'    # 09:17 UTC  (14:47 IST)
+    - cron: '17 17 * * *'   # 17:17 UTC  (22:47 IST)
+  workflow_dispatch:        # lets you trigger a manual test run anytime
+
+permissions:
+  contents: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Append daily activity (auto-stops after 2026-06-21)
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          if [[ "$TODAY" > "2026-06-21" && "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "Past the streak window ($TODAY) — skipping (delete this repo's workflow when you're back)."
+            exit 0
+          fi
+          git config user.name "AmirKhan"
+          git config user.email "amirnasirkhan24@gmail.com"
+          echo "activity ping $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> activity.log
+          git add activity.log
+          git commit -m "chore: daily activity ${TODAY}"
+          git pull --rebase origin main || true
+          git push
